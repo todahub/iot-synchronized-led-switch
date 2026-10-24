@@ -1,0 +1,190 @@
+% ProtocolMessage_FunctionSpec.tex
+\documentclass[a4paper,12pt]{article}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,top=25mm,bottom=25mm}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=cyan,
+}
+\usepackage{pxjahyper}
+
+
+\title{関数仕様書 \\ \large ProtocolMessage モジュール}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{概要}
+\texttt{Protocol::ProtocolMessage} の関数仕様をまとめた．メッセージの生成，解析，CRC計算などの機能を提供する．
+
+\section{備考}
+いろいろチャッピー使って書かせたんだけど，結局使うのはビット配列を作成する関数と，送られてきたデータが欠けていないか確認する関数と，送られてきたデータが何を表しているかを返す関数の三つです．
+\begin{enumerate}
+\item 名前空間 \texttt{Protocol::Factory}に送るビット配列作成用の関数が書かれてます．
+\item 名前空間 \texttt{Protocol::Parser}に送られてきたデータのエラー検知と，内容判断の関数が書かれています．
+\end{enumerate}
+
+おそらくこれらの関数を使ってもらうと思います．
+
+\section{名前空間 \texttt{Protocol::CRC}}
+
+\subsection{uint16\_t calculate(const uint8\_t* data, size\_t length)}
+\begin{itemize}
+  \item \textbf{概要} : CRC-16-CCITT アルゴリズムに基づき，指定されたバイト列のCRC値を計算する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{const uint8\_t* data} : CRC計算対象のバイト列の先頭ポインタ
+    \item \texttt{size\_t length} : バイト列の長さ
+  \end{itemize}
+  \item \textbf{戻り値} : 計算された16ビットCRC値
+  \item \textbf{備考} : 初期値0xFFFF，多項式0x1021を使用．
+\end{itemize}
+
+\section{構造体 \texttt{Protocol::ProtocolMessage}}
+
+\subsection{コンストラクタ \texttt{ProtocolMessage(uint8\_t f, uint32\_t ts, uint8\_t d)}}
+\begin{itemize}
+  \item \textbf{概要} : 指定されたフラグ，タイムスタンプ，データでメッセージを初期化する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t f} : メッセージの種類を示すフラグ
+    \item \texttt{uint32\_t ts} : タイムスタンプ
+    \item \texttt{uint8\_t d} : データ領域（ON/OFFや時刻差など）
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{デフォルトコンストラクタ \texttt{ProtocolMessage()}}
+\begin{itemize}
+  \item \textbf{概要} : メンバーをすべて0で初期化する．
+  \item \textbf{引数} : なし
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{void fromBytes(const uint8\_t* buf)}
+\begin{itemize}
+  \item \textbf{概要} : バイト列（8バイト）からメッセージデータを展開する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{const uint8\_t* buf} : 展開元の8バイトのバッファ
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+  \item \textbf{備考} : バイト列は flag(1byte), timestamp(4byte), data(1byte), crc(2byte)の順で格納されている．
+\end{itemize}
+
+\subsection{void toBytes(uint8\_t* buf) const}
+\begin{itemize}
+  \item \textbf{概要} : メッセージをバイト列（8バイト）に変換し，末尾にCRCを自動計算して格納する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buf} : 変換先の8バイトバッファ
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+  \item \textbf{備考} : CRCは flag〜data の6バイトに対して計算される．
+\end{itemize}
+
+\section{名前空間 \texttt{Protocol::Factory}}
+
+\subsection{void createButtonPressMessage(uint8\_t* buffer, uint32\_t time)}
+\begin{itemize}
+  \item \textbf{概要} : ボタン押下を示すメッセージを作成する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buffer} : 生成したメッセージを格納する8バイト配列
+    \item \texttt{uint32\_t time} : ボタン押下時刻のタイムスタンプ
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{void createLEDStateRequest(uint8\_t* buffer)}
+\begin{itemize}
+  \item \textbf{概要} : LED状態のリクエストメッセージを作成する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buffer} : 生成したメッセージを格納する8バイト配列
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{void createLEDControlResponse(uint8\_t* buffer, uint32\_t time, bool turnOn)}
+\begin{itemize}
+  \item \textbf{概要} : LEDのON/OFF制御レスポンスメッセージを作成する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buffer} : 生成したメッセージを格納する8バイト配列
+    \item \texttt{uint32\_t time} : LEDの変更時間指定
+    \item \texttt{bool turnOn} : LEDをONにする場合はtrue，OFFにする場合はfalse
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{void createTimeSyncRequest(uint8\_t* buffer, uint32\_t t1)}
+\begin{itemize}
+  \item \textbf{概要} : 時刻同期リクエストメッセージを作成する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buffer} : 生成したメッセージを格納する8バイト配列
+    \item \texttt{uint32\_t t1} : リクエスト送信時刻のタイムスタンプ
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\subsection{void createTimeSyncResponse(uint8\_t* buffer, uint32\_t t3, uint8\_t diff)}
+\begin{itemize}
+  \item \textbf{概要} : 時刻同期レスポンスメッセージを作成する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{uint8\_t* buffer} : 生成したメッセージを格納する8バイト配列
+    \item \texttt{uint32\_t t3} : レスポンス送信時刻のタイムスタンプ
+    \item \texttt{uint8\_t diff} : 時刻差（t2 - t1）
+  \end{itemize}
+  \item \textbf{戻り値} : なし
+\end{itemize}
+
+\section{名前空間 \texttt{Protocol::Parser}}
+
+\subsection{enum class ParseResult}
+\begin{itemize}
+  \item \textbf{概要} : メッセージ解析結果の列挙型
+  \item \textbf{値} :
+  \begin{itemize}
+    \item \texttt{OK} : 解析成功
+    \item \texttt{NotEnoughData} : データ長不足（8バイト未満）
+    \item \texttt{UnknownFlag} : 未知のフラグ検出
+    \item \texttt{CRCMismatch} : CRC不一致
+  \end{itemize}
+\end{itemize}
+
+\subsection{ParseResult tryParseMessageFromBuffer(const uint8\_t* buffer, size\_t len, ProtocolMessage\& msg)}
+\begin{itemize}
+  \item \textbf{概要} : バッファからプロトコルメッセージを解析し，構造体に展開する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{const uint8\_t* buffer} : 解析対象のバイト列
+    \item \texttt{size\_t len} : バッファ長
+    \item \texttt{ProtocolMessage\& msg} : データ格納先
+  \end{itemize}
+  \item \textbf{戻り値} : \texttt{ParseResult} 列挙型の解析結果コード
+  \item \textbf{備考} : バッファ長が8未満の場合やフラグが未知の場合，CRCが一致しない場合にそれぞれエラーを返す．
+\end{itemize}
+
+\subsection{MessageType getMessageType(const ProtocolMessage\& msg)}
+\begin{itemize}
+  \item \textbf{概要} : メッセージのflag値に基づきメッセージタイプを判別する．
+  \item \textbf{引数} :
+  \begin{itemize}
+    \item \texttt{const ProtocolMessage\& msg} : 判別対象のメッセージ
+  \end{itemize}
+  \item \textbf{戻り値} : メッセージの種類を示す \texttt{MessageType} 列挙型値
+\end{itemize}
+
+\end{document}
+
